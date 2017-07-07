@@ -1,0 +1,217 @@
+*** Purpose: prepare NESARC data for analysis
+*** Author: S Bauldry
+*** Date: July 6, 2017
+
+*** extracting wave 1 variables
+use IDNUM S1Q1F ETHRACE2A S1Q1E SEX MARITAL CHLD0_17 S1Q6A S1Q7A1 S1Q7A2 ///
+  S1Q12B S1Q14C* REGION CCS ///
+  using "~/dropbox/research/data/nesarc/stata/NESARC Wave 1 Data", replace
+  
+tempfile d1
+save `d1', replace
+
+
+*** extracting wave 2 variables
+use IDNUM DEP12ROBSI DYSROSI12 HYPO12 W2PANDX12 PANADX12 AGORADX12 SOCDX12 ///
+  SPEC12 GENDX12 W2S1Q25 W2S12Q4A W2S1Q2BR W2S1Q2AR W2S1Q2C W2S2DQ1*       ///
+  W2S2DQ6* W2S2DQ8* W2S2DQ2* W2S2DQ9* W2S2DQ3A* W2S2DQ10A* W2AGE W2WEIGHT  ///
+  W2PSU W2STRATUM W2S1Q2D W2S1Q2E W2S2DQ27* W2S2DQ17B W2S2DQ18B W2S2DQ19B  ///
+  W2S2DQ20B W2S2DQ21B W2S2DQ22B W2S2DQ23 W2S2DQ24 W2S2DQ25B W2S2DQ26C      ///
+  W2S1Q37C W2MARITAL ///
+  using "~/dropbox/research/data/nesarc/stata/NESARC Wave 2 Data", replace
+
+*** merging two waves
+merge 1:1 IDNUM using `d1'
+keep if _merge == 3
+drop _merge
+  
+rename _all, lower
+recode s1q1f (9 = .)
+recode s1q1e (98 99 = .)
+recode w2s1q25 w2s1q2br w2s2dq1* w2s2dq6* w2s2dq8* w2s2dq2* w2s2dq9* ///
+  w2s2dq3a* w2s2dq10a* w2s2dq27* (9 = .)
+recode w2s1q2ar w2s1q2c w2s2dq17b w2s2dq20b w2s2dq21b w2s2dq22b w2s2dq23 ///
+  w2s2dq24 w2s2dq25b w2s2dq26c (99 = .)
+recode w2s1q2d w2s1q2e (999 = .)
+recode w2s1q37c (. = 2) (999 = .)
+
+
+*** preparing variables for analysis
+* mood/anxiety disorder in past year, self-rated health
+gen mod = ( dep12robsi == 1 | dysrosi12 == 1 | hypo12 == 1 )
+gen anx = ( w2pandx12 == 1 | panadx12 == 1 | agoradx12 == 1 | socdx12 == 1 | ///
+            spec12 == 1 | gendx12 == 1 )
+gen srh = 6 - w2s1q25
+lab var mod "w2 mood disorder past year"
+lab var anx "w2 anxiety disorder past year"
+lab var srh "w2 self-rated health"
+
+* refugee, nativity, and origin
+gen ref = (w2s12q4a == 1) if !mi(w2s12q4a)
+
+gen mnat = (w2s1q2d == 10) if !mi(w2s1q2d)
+gen fnat = (w2s1q2e == 10) if !mi(w2s1q2e)
+
+gen     nat = 3 if s1q1f != 1 & !mi(s1q1f)
+replace nat = 3 if w2s1q2br != 1 & mi(nat)
+replace nat = 2 if ( mnat != 1 | fnat != 1 ) & mi(nat)
+replace nat = 1 if s1q1f == 1 & mi(nat)
+replace nat = 1 if w2s1q2br == 1 & mi(nat)
+lab def nt 1 "born in US" 2 "2nd gen immigrant" 3 "1st gen immigrant"
+lab val nat nt
+lab var nat "w1 nativity status"
+
+rename s1q1e origin
+replace origin = w2s1q2ar if mi(origin)
+recode origin (5 6 12/15 17/20 22 27 29 37 38 40 41 44/46 50 51 55 58 = 1) ///
+              (1 2 54 = 2) (10 16 21 23 24 30 32 34 42 47 49 52 57 = 3) ///
+              (9 35 36 8 11 43 53 = 4) (39 = 5) ///
+			  (3 4 7 25 26 28 31 33 48 56 98 = 7), gen(ori)
+replace ori = 1 if ethrace2a == 1 & mi(ori)
+replace ori = 2 if ethrace2a == 2 & mi(ori)
+replace ori = 7 if ethrace2a == 3 & mi(ori)
+replace ori = 3 if ethrace2a == 4 & mi(ori)
+lab def or 1 "Eu" 2 "Af" 3 "As" 4 "Hi" 5 "PR" 7 "Ot"
+lab val ori or
+lab var ori "w1 national origin"
+
+* acculturation indicators
+gen yus = w2s1q2c
+lab var yus "w2 years in US"
+
+foreach x in a b c d e f g h i j k {
+	replace w2s2dq1`x' = w2s2dq6`x' if mi(w2s2dq1`x')
+	replace w2s2dq1`x' = w2s2dq8`x' if mi(w2s2dq1`x')
+}
+rename (w2s2dq1a w2s2dq1b w2s2dq1c w2s2dq1d w2s2dq1e w2s2dq1f w2s2dq1g    ///
+        w2s2dq1h w2s2dq1i w2s2dq1j w2s2dq1k) (al1 al2 al3 al4 al5 al6 al7 ///
+		as1 as2 as3 as4)
+lab var al1 "w2 languages read/speak"
+lab var al2 "w2 languages read/speak as child"
+lab var al3 "w2 languages read/speak at home"
+lab var al4 "w2 languages read/speak when thinking"
+lab var al5 "w2 languages read/speak with friends"
+lab var al6 "w2 languages read/speak usually for tv/radio"
+lab var al7 "w2 languages read/speak prefer tv/radio"
+lab var as1 "w2 ethnicity of close friends"
+lab var as2 "w2 ethnicity of social gatherings"
+lab var as3 "w2 ethnicity of people you visit"
+lab var as4 "w2 ethnicity of desired children's friends"
+
+foreach x in a b c d e f g h {
+	replace w2s2dq2`x' = w2s2dq9`x' if mi(w2s2dq2`x')
+}
+rename (w2s2dq2a w2s2dq2b w2s2dq2c w2s2dq2d w2s2dq2e w2s2dq2f w2s2dq2g ///
+        w2s2dq2h) (ai1 ai2 ai3 ai4 ai5 ai6 ai7 ai8)
+lab var ai1 "w2 ethnicity strong sense of self"
+lab var ai2 "w2 ethnicity identify with others"
+lab var ai3 "w2 ethnicity close friends"
+lab var ai4 "w2 ethnicity heritage important"
+lab var ai5 "w2 ethnicity comfortable in social settings"
+lab var ai6 "w2 ethnicity proud of heritage"
+lab var ai7 "w2 ethnicity background important in interaction"
+lab var ai8 "w2 ethnicity shared values, attitudes, and behaviors"
+
+alpha al* if nat > 1, gen(sal)
+alpha as* if nat > 1, gen(sas)
+alpha ai* if nat > 1, gen(sai)
+lab var sal "w2 acculturation language scale"
+lab var sas "w2 acculturation social preferences scale"
+lab var sai "w2 acculturation identity scale"
+
+* perceived discrimination indicators
+forval i = 1/6 {
+	replace w2s2dq3a`i' = w2s2dq10a`i' if mi(w2s2dq3a`i')
+}
+rename (w2s2dq3a*) (pd1 pd2 pd3 pd4 pd5 pd6)
+lab var pd1 "w2 discrimination in health care or insurance"
+lab var pd2 "w2 discrimination in received care"
+lab var pd3 "w2 discrimination in public"
+lab var pd4 "w2 discrimination in any situation"
+lab var pd5 "w2 called a racist name"
+lab var pd6 "w2 made fun of"
+
+alpha pd*  if nat > 1, gen(spd)
+lab var spd "w2 perceived discrimination scale"
+
+* social network and social support variables
+recode w2s2dq18b w2s2dq19b (2 = 0)
+
+gen tMar = ( w2marital == 1 ) if !mi(w2marital)
+gen tChi = ( w2s2dq17b > 0 ) if !mi(w2s2dq17b)
+gen tPar = ( w2s2dq18b == 1 ) if !mi(w2s2dq18b)
+gen tSPr = ( w2s2dq19b == 1 ) if !mi(w2s2dq19b)
+gen tRel = ( w2s2dq20b > 0 ) if !mi(w2s2dq20b)
+gen tFri = ( w2s2dq21b > 0 ) if !mi(w2s2dq21b) 
+gen tCls = ( w2s2dq22b > 0 ) if !mi(w2s2dq22b)
+gen tWrk = ( w2s2dq23 > 0 ) if !mi(w2s2dq23)
+gen tNei = ( w2s2dq24 > 0 ) if !mi(w2s2dq24)
+gen tVol = ( w2s2dq25b > 0 ) if !mi(w2s2dq25b)
+gen tOGr = ( w2s2dq26c > 0 ) if !mi(w2s2dq26c)
+gen tRlg = ( w2s1q37c > 0 ) if !mi(w2s1q37c)
+
+egen nsi2 = rowtotal(tMar tChi tPar tSPr tRel tFri tCls tWrk tNei tVol tOGr tRlg)
+egen cties2 = rowtotal(tMar w2s2dq17b w2s2dq18b w2s2dq19b w2s2dq20b w2s2dq21b)
+egen oties2 = rowtotal(w2s2dq22b w2s2dq23 w2s2dq24 w2s2dq25b w2s2dq26c w2s1q37c)
+lab var nsi2 "network support index"
+lab var cties2 "# ties with family and friends"
+lab var oties2 "# other ties"
+
+recode w2s2dq27a w2s2dq27b w2s2dq27g w2s2dq27h w2s2dq27k w2s2dq27l (4 = 1) ///
+       (3 = 2) (2 = 3) (1 = 4)
+alpha w2s2dq27a-w2s2dq27l, gen(ssp)
+lab var ssp "w2 social support scale (a = .83)"
+	
+* sociodemographics
+rename w2age age
+lab var age "w2 age"
+
+gen fem = (sex == 2)
+lab var fem "w1 female"
+
+recode marital (6 = 1) (3/5 = 2) (2 = 3) (1 = 4), gen(mar)
+lab def mr 1 "nev" 2 "pre" 3 "coh" 4 "mar", replace
+lab val mar mr
+lab var mar "w1 marital status"
+
+gen chd = (chld0_17 > 0) if !mi(chld0_17)
+lab var chd "w1 any child age 0 to 17 in household"
+
+recode s1q6a (8 = 9) (9 = 8), gen(edu)
+lab var edu "w1 highest grade completed"
+
+gen wrk     = 3 if s1q7a1 == 1
+replace wrk = 2 if s1q7a2 == 1 & mi(wrk)
+replace wrk = 1 if mi(wrk)
+lab def wk 1 "NW" 2 "PT" 3 "FT", replace
+lab val wrk wk
+lab var wrk "w1 work status"
+
+recode s1q12b (1 = .25) (2 = .65) (3 = .9) (4 = 1.15) (5 = 1.4) ///
+			  (6 = 1.75) (7 = 2.25) (8 = 2.75) (9 = 3.25) (10 = 3.75) ///
+			  (11 = 4.5) (12 = 5.5) (13 = 6.5) (14 = 7.5) (15 = 8.5) ///
+			  (16 = 9.5) (17 = 10.5) (18 = 11.5) (19 = 13.5) (20 = 17.5) ///
+			  (21 = 31.6345), gen(inc)
+lab var inc "w1 household income"
+
+recode s1q14c* (2 = 0)
+gen ins     = 4 if s1q14c4 == 1
+replace ins = 3 if (s1q14c1 == 1 | s1q14c2 == 1) & mi(ins)
+replace ins = 2 if s1q14c3 == 1 & mi(ins)
+replace ins = 1 if mi(ins)
+replace ins = . if mi(s1q14c1, s1q14c2, s1q14c3, s1q14c4)
+lab def ins 1 "none" 2 "oth" 3 "pub" 4 "prv", replace
+lab val ins ins
+lab var ins "w1 insurance status"
+
+rename (region ccs) (reg com)
+lab def rg 1 "NE" 2 "M" 3 "S" 4 "W", replace
+lab val reg rg
+lab var reg "w1 region"
+
+lab def ct 1 "center" 2 "not center" 3 "not MSA", replace
+lab val com ct
+lab var com "w1 community type"
+
+* complex sample variables
+rename (w2weight w2psu w2stratum) (wgt psu str)
