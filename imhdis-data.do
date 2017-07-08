@@ -4,7 +4,7 @@
 
 *** extracting wave 1 variables
 use IDNUM S1Q1F ETHRACE2A S1Q1E SEX MARITAL CHLD0_17 S1Q6A S1Q7A1 S1Q7A2 ///
-  S1Q12B S1Q14C* REGION CCS ///
+  S1Q12B S1Q14C* REGION CCS S1Q233-S1Q2312 ///
   using "~/dropbox/research/data/nesarc/stata/NESARC Wave 1 Data", replace
   
 tempfile d1
@@ -17,7 +17,7 @@ use IDNUM DEP12ROBSI DYSROSI12 HYPO12 W2PANDX12 PANADX12 AGORADX12 SOCDX12 ///
   W2S2DQ6* W2S2DQ8* W2S2DQ2* W2S2DQ9* W2S2DQ3A* W2S2DQ10A* W2AGE W2WEIGHT  ///
   W2PSU W2STRATUM W2S1Q2D W2S1Q2E W2S2DQ27* W2S2DQ17B W2S2DQ18B W2S2DQ19B  ///
   W2S2DQ20B W2S2DQ21B W2S2DQ22B W2S2DQ23 W2S2DQ24 W2S2DQ25B W2S2DQ26C      ///
-  W2S1Q37C W2MARITAL ///
+  W2S1Q37C W2MARITAL W2S1Q361-W2S1Q3614 W2S12Q5A21 W2S12Q5B21 ///
   using "~/dropbox/research/data/nesarc/stata/NESARC Wave 2 Data", replace
 
 *** merging two waves
@@ -29,9 +29,10 @@ rename _all, lower
 recode s1q1f (9 = .)
 recode s1q1e (98 99 = .)
 recode w2s1q25 w2s1q2br w2s2dq1* w2s2dq6* w2s2dq8* w2s2dq2* w2s2dq9* ///
-  w2s2dq3a* w2s2dq10a* w2s2dq27* (9 = .)
+  w2s2dq3a* w2s2dq10a* w2s2dq27* w2s12q4a s1q233-s1q2312 w2s1q361-w2s1q3614 ///
+  w2s12q5a21 (9 = .)
 recode w2s1q2ar w2s1q2c w2s2dq17b w2s2dq20b w2s2dq21b w2s2dq22b w2s2dq23 ///
-  w2s2dq24 w2s2dq25b w2s2dq26c (99 = .)
+  w2s2dq24 w2s2dq25b w2s2dq26c w2s12q5b21 (99 = .)
 recode w2s1q2d w2s1q2e (999 = .)
 recode w2s1q37c (. = 2) (999 = .)
 
@@ -86,53 +87,34 @@ foreach x in a b c d e f g h i j k {
 rename (w2s2dq1a w2s2dq1b w2s2dq1c w2s2dq1d w2s2dq1e w2s2dq1f w2s2dq1g    ///
         w2s2dq1h w2s2dq1i w2s2dq1j w2s2dq1k) (al1 al2 al3 al4 al5 al6 al7 ///
 		as1 as2 as3 as4)
-lab var al1 "w2 languages read/speak"
-lab var al2 "w2 languages read/speak as child"
-lab var al3 "w2 languages read/speak at home"
-lab var al4 "w2 languages read/speak when thinking"
-lab var al5 "w2 languages read/speak with friends"
-lab var al6 "w2 languages read/speak usually for tv/radio"
-lab var al7 "w2 languages read/speak prefer tv/radio"
-lab var as1 "w2 ethnicity of close friends"
-lab var as2 "w2 ethnicity of social gatherings"
-lab var as3 "w2 ethnicity of people you visit"
-lab var as4 "w2 ethnicity of desired children's friends"
 
 foreach x in a b c d e f g h {
 	replace w2s2dq2`x' = w2s2dq9`x' if mi(w2s2dq2`x')
 }
 rename (w2s2dq2a w2s2dq2b w2s2dq2c w2s2dq2d w2s2dq2e w2s2dq2f w2s2dq2g ///
         w2s2dq2h) (ai1 ai2 ai3 ai4 ai5 ai6 ai7 ai8)
-lab var ai1 "w2 ethnicity strong sense of self"
-lab var ai2 "w2 ethnicity identify with others"
-lab var ai3 "w2 ethnicity close friends"
-lab var ai4 "w2 ethnicity heritage important"
-lab var ai5 "w2 ethnicity comfortable in social settings"
-lab var ai6 "w2 ethnicity proud of heritage"
-lab var ai7 "w2 ethnicity background important in interaction"
-lab var ai8 "w2 ethnicity shared values, attitudes, and behaviors"
 
 alpha al* if nat > 1, gen(sal)
 alpha as* if nat > 1, gen(sas)
 alpha ai* if nat > 1, gen(sai)
-lab var sal "w2 acculturation language scale"
-lab var sas "w2 acculturation social preferences scale"
-lab var sai "w2 acculturation identity scale"
+lab var sal "w2 acculturation language scale (a = 0.96)"
+lab var sas "w2 acculturation social preferences scale (a = 0.85)"
+lab var sai "w2 acculturation identity scale (a = 0.87)"
 
 * perceived discrimination indicators
 forval i = 1/6 {
-	replace w2s2dq3a`i' = w2s2dq10a`i' if mi(w2s2dq3a`i')
+	replace w2s2dq3a`i' = w2s2dq10a`i' if mi(w2s2dq3a`i') 
 }
 rename (w2s2dq3a*) (pd1 pd2 pd3 pd4 pd5 pd6)
+
+alpha pd*, gen(spd)
 lab var pd1 "w2 discrimination in health care or insurance"
 lab var pd2 "w2 discrimination in received care"
 lab var pd3 "w2 discrimination in public"
 lab var pd4 "w2 discrimination in any situation"
 lab var pd5 "w2 called a racist name"
 lab var pd6 "w2 made fun of"
-
-alpha pd*  if nat > 1, gen(spd)
-lab var spd "w2 perceived discrimination scale"
+lab var spd "w2 perceived discrimination scale (a = 0.76)"
 
 * social network and social support variables
 recode w2s2dq18b w2s2dq19b (2 = 0)
@@ -150,17 +132,26 @@ gen tVol = ( w2s2dq25b > 0 ) if !mi(w2s2dq25b)
 gen tOGr = ( w2s2dq26c > 0 ) if !mi(w2s2dq26c)
 gen tRlg = ( w2s1q37c > 0 ) if !mi(w2s1q37c)
 
-egen nsi2 = rowtotal(tMar tChi tPar tSPr tRel tFri tCls tWrk tNei tVol tOGr tRlg)
-egen cties2 = rowtotal(tMar w2s2dq17b w2s2dq18b w2s2dq19b w2s2dq20b w2s2dq21b)
-egen oties2 = rowtotal(w2s2dq22b w2s2dq23 w2s2dq24 w2s2dq25b w2s2dq26c w2s1q37c)
-lab var nsi2 "network support index"
-lab var cties2 "# ties with family and friends"
-lab var oties2 "# other ties"
+egen nsi = rowtotal(tMar tChi tPar tSPr tRel tFri tCls tWrk tNei tVol tOGr tRlg)
+lab var nsi "network support index"
 
 recode w2s2dq27a w2s2dq27b w2s2dq27g w2s2dq27h w2s2dq27k w2s2dq27l (4 = 1) ///
        (3 = 2) (2 = 3) (1 = 4)
 alpha w2s2dq27a-w2s2dq27l, gen(ssp)
 lab var ssp "w2 social support scale (a = .83)"
+
+* stressful life events
+recode s1q233-s1q2312 w2s1q361-w2s1q3614 w2s12q5a21 (2 = 0)
+egen se1 = rowtotal(s1q233-s1q2312)
+
+gen tpol = ( w2s1q369 == 1 | w2s1q3614 == 1 )
+gen tvic = ( w2s1q3610 == 1 | w2s1q3611 == 1 )
+gen agei = w2age - w2s12q5b21
+replace w2s12q5a21 = 0 if agei > 1
+egen se2 = rowtotal(w2s1q361-w2s1q369 w2s1q3612 w2s12q5a21 tpol tvic)
+
+lab var se1 "w1 stressful life events"
+lab var se2 "w2 stressful life events"
 	
 * sociodemographics
 rename w2age age
@@ -168,14 +159,6 @@ lab var age "w2 age"
 
 gen fem = (sex == 2)
 lab var fem "w1 female"
-
-recode marital (6 = 1) (3/5 = 2) (2 = 3) (1 = 4), gen(mar)
-lab def mr 1 "nev" 2 "pre" 3 "coh" 4 "mar", replace
-lab val mar mr
-lab var mar "w1 marital status"
-
-gen chd = (chld0_17 > 0) if !mi(chld0_17)
-lab var chd "w1 any child age 0 to 17 in household"
 
 recode s1q6a (8 = 9) (9 = 8), gen(edu)
 lab var edu "w1 highest grade completed"
@@ -215,3 +198,13 @@ lab var com "w1 community type"
 
 * complex sample variables
 rename (w2weight w2psu w2stratum) (wgt psu str)
+
+
+*** saving analysis variables and sample
+keep if nat > 1 | ref == 1
+keep if !mi(srh, spd, ssp, sal, sas, sai)
+order idnum mod anx srh spd nsi ssp sal sas sai yus se1 se2 ori age fem edu ///
+  wrk inc ins reg com wgt psu str
+keep idnum-str
+save imhdis-data, replace
+
