@@ -66,13 +66,13 @@ rename s1q1e origin
 replace origin = w2s1q2ar if mi(origin)
 recode origin (5 6 12/15 17/20 22 27 29 37 38 40 41 44/46 50 51 55 58 = 1) ///
               (1 2 54 = 2) (10 16 21 23 24 30 32 34 42 47 49 52 57 = 3) ///
-              (9 35 36 8 11 43 53 = 4) (39 = 5) ///
-			  (3 4 7 25 26 28 31 33 48 56 98 = 7), gen(ori)
+              (9 35 36 8 11 39 43 53 = 4) (3 4 7 25 26 28 31 33 48 56 98 = 7), ///
+			  gen(ori)
 replace ori = 1 if ethrace2a == 1 & mi(ori)
 replace ori = 2 if ethrace2a == 2 & mi(ori)
 replace ori = 7 if ethrace2a == 3 & mi(ori)
 replace ori = 3 if ethrace2a == 4 & mi(ori)
-lab def or 1 "Eu" 2 "Af" 3 "As" 4 "Hi" 5 "PR" 7 "Ot"
+lab def or 1 "Eu" 2 "Af" 3 "As" 4 "Hi" 7 "Ot"
 lab val ori or
 lab var ori "w1 national origin"
 
@@ -203,8 +203,8 @@ rename (w2weight w2psu w2stratum) (wgt psu str)
 *** saving analysis variables and sample
 keep if nat > 1 | ref == 1
 keep if !mi(srh, spd, ssp, sal, sas, sai)
-order idnum mod anx srh spd nsi ssp sal sas sai yus se1 se2 ori age fem edu ///
-  wrk inc ins reg com wgt psu str
+order idnum nat ref mod anx srh spd nsi ssp sal sas sai yus se1 se2 ori age ///
+  fem edu wrk inc ins reg com wgt psu str
 keep idnum-str
 save imhdis-data, replace
 
