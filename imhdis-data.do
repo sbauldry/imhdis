@@ -17,8 +17,9 @@ use IDNUM DEP12ROBSI DYSROSI12 HYPO12 W2PANDX12 PANADX12 AGORADX12 SOCDX12 ///
   W2S2DQ6* W2S2DQ8* W2S2DQ2* W2S2DQ9* W2S2DQ3A* W2S2DQ10A* W2AGE W2WEIGHT  ///
   W2PSU W2STRATUM W2S1Q2D W2S1Q2E W2S2DQ27* W2S2DQ17B W2S2DQ18B W2S2DQ19B  ///
   W2S2DQ20B W2S2DQ21B W2S2DQ22B W2S2DQ23 W2S2DQ24 W2S2DQ25B W2S2DQ26C      ///
-  W2S1Q37C W2MARITAL W2S1Q361-W2S1Q3614 W2S12Q5A21 W2S12Q5B21 ///
-  using "~/dropbox/research/data/nesarc/stata/NESARC Wave 2 Data", replace
+  W2S1Q37C W2MARITAL W2S1Q361-W2S1Q3614 W2S12Q5A21 W2S12Q5B21 W2NBPCS      ///
+  W2NBMCS using "~/dropbox/research/data/nesarc/stata/NESARC Wave 2 Data", ///
+  replace
 
 *** merging two waves
 merge 1:1 IDNUM using `d1'
@@ -32,7 +33,7 @@ recode w2s1q25 w2s1q2br w2s2dq1* w2s2dq6* w2s2dq8* w2s2dq2* w2s2dq9* ///
   w2s2dq3a* w2s2dq10a* w2s2dq27* w2s12q4a s1q233-s1q2312 w2s1q361-w2s1q3614 ///
   w2s12q5a21 (9 = .)
 recode w2s1q2ar w2s1q2c w2s2dq17b w2s2dq20b w2s2dq21b w2s2dq22b w2s2dq23 ///
-  w2s2dq24 w2s2dq25b w2s2dq26c w2s12q5b21 (99 = .)
+  w2s2dq24 w2s2dq25b w2s2dq26c w2s12q5b21 w2nbpcs w2nbmcs (99 = .)
 recode w2s1q2d w2s1q2e (999 = .)
 recode w2s1q37c (. = 2) (999 = .)
 
@@ -43,9 +44,12 @@ gen mod = ( dep12robsi == 1 | dysrosi12 == 1 | hypo12 == 1 )
 gen anx = ( w2pandx12 == 1 | panadx12 == 1 | agoradx12 == 1 | socdx12 == 1 | ///
             spec12 == 1 | gendx12 == 1 )
 gen srh = 6 - w2s1q25
+rename (w2nbpcs w2nbmcs) (phl mhl)
 lab var mod "w2 mood disorder past year"
 lab var anx "w2 anxiety disorder past year"
 lab var srh "w2 self-rated health"
+lab var phl "w2 physical health SF12-2"
+lab var mhl "w2 mental health SF12-2"
 
 * refugee, nativity, and origin
 gen ref = (w2s12q4a == 1) if !mi(w2s12q4a)
@@ -107,14 +111,16 @@ forval i = 1/6 {
 }
 rename (w2s2dq3a*) (pd1 pd2 pd3 pd4 pd5 pd6)
 
-alpha pd*, gen(spd)
+alpha pd1 pd2, gen(pdh)
+alpha pd3 pd4 pd5 pd6, gen(pdg)
 lab var pd1 "w2 discrimination in health care or insurance"
 lab var pd2 "w2 discrimination in received care"
 lab var pd3 "w2 discrimination in public"
 lab var pd4 "w2 discrimination in any situation"
 lab var pd5 "w2 called a racist name"
 lab var pd6 "w2 made fun of"
-lab var spd "w2 perceived discrimination scale (a = 0.76)"
+lab var pdh "w2 perceived discrimination health care (a = 0.75)"
+lab var pdg "w2 perceived discrimination general (a = 0.73)"
 
 * social network and social support variables
 recode w2s2dq18b w2s2dq19b (2 = 0)
@@ -201,10 +207,18 @@ rename (w2weight w2psu w2stratum) (wgt psu str)
 
 
 *** saving analysis variables and sample
-keep if nat > 1 | ref == 1
-keep if !mi(srh, spd, ssp, sal, sas, sai)
-order idnum nat ref mod anx srh spd nsi ssp sal sas sai yus se1 se2 ori age ///
-  fem edu wrk inc ins reg com wgt psu str
+order idnum nat ref phl mhl srh pdh pdg ssp sal sas sai se2 ori age fem edu ///
+  wrk inc ins reg com wgt psu str
 keep idnum-str
+
+* just keep immigrants and refugees
+keep if nat > 1 | ref == 1
+
+* drop 111 cases missing outcome variables (1%)
+keep if !mi(phl, pdh)
+
+* drop 64 cases missing covariates (<1%)
+keep if !mi(pdg, ssp, sal, sas, sai, ori)
+
 save imhdis-data, replace
 
