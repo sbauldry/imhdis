@@ -12,7 +12,7 @@ qui tab com, gen(c)
 tab nat
 tab ref
 
-foreach x of varlist mod anx srh spd sal sas sai yus nsi ssp se2 o2 o3 o4 ///
+foreach x of varlist phl mhl srh pdh pdg sal sas sai ssp se2 o2 o3 o4 ///
   o1 o5 age fem edu w1 w2 w3 inc r1 r2 r3 r4 c1 c2 c3 {
   
   qui sum `x' if nat == 3
