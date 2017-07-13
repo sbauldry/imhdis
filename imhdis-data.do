@@ -122,25 +122,7 @@ lab var pd6 "w2 made fun of"
 lab var pdh "w2 perceived discrimination health care (a = 0.75)"
 lab var pdg "w2 perceived discrimination general (a = 0.73)"
 
-* social network and social support variables
-recode w2s2dq18b w2s2dq19b (2 = 0)
-
-gen tMar = ( w2marital == 1 ) if !mi(w2marital)
-gen tChi = ( w2s2dq17b > 0 ) if !mi(w2s2dq17b)
-gen tPar = ( w2s2dq18b == 1 ) if !mi(w2s2dq18b)
-gen tSPr = ( w2s2dq19b == 1 ) if !mi(w2s2dq19b)
-gen tRel = ( w2s2dq20b > 0 ) if !mi(w2s2dq20b)
-gen tFri = ( w2s2dq21b > 0 ) if !mi(w2s2dq21b) 
-gen tCls = ( w2s2dq22b > 0 ) if !mi(w2s2dq22b)
-gen tWrk = ( w2s2dq23 > 0 ) if !mi(w2s2dq23)
-gen tNei = ( w2s2dq24 > 0 ) if !mi(w2s2dq24)
-gen tVol = ( w2s2dq25b > 0 ) if !mi(w2s2dq25b)
-gen tOGr = ( w2s2dq26c > 0 ) if !mi(w2s2dq26c)
-gen tRlg = ( w2s1q37c > 0 ) if !mi(w2s1q37c)
-
-egen nsi = rowtotal(tMar tChi tPar tSPr tRel tFri tCls tWrk tNei tVol tOGr tRlg)
-lab var nsi "network support index"
-
+* social support 
 recode w2s2dq27a w2s2dq27b w2s2dq27g w2s2dq27h w2s2dq27k w2s2dq27l (4 = 1) ///
        (3 = 2) (2 = 3) (1 = 4)
 alpha w2s2dq27a-w2s2dq27l, gen(ssp)
@@ -183,16 +165,6 @@ recode s1q12b (1 = .25) (2 = .65) (3 = .9) (4 = 1.15) (5 = 1.4) ///
 			  (21 = 31.6345), gen(inc)
 lab var inc "w1 household income"
 
-recode s1q14c* (2 = 0)
-gen ins     = 4 if s1q14c4 == 1
-replace ins = 3 if (s1q14c1 == 1 | s1q14c2 == 1) & mi(ins)
-replace ins = 2 if s1q14c3 == 1 & mi(ins)
-replace ins = 1 if mi(ins)
-replace ins = . if mi(s1q14c1, s1q14c2, s1q14c3, s1q14c4)
-lab def ins 1 "none" 2 "oth" 3 "pub" 4 "prv", replace
-lab val ins ins
-lab var ins "w1 insurance status"
-
 rename (region ccs) (reg com)
 lab def rg 1 "NE" 2 "M" 3 "S" 4 "W", replace
 lab val reg rg
@@ -203,13 +175,12 @@ lab val com ct
 lab var com "w1 community type"
 
 * complex sample variables
-rename (w2weight w2psu w2stratum) (wgt psu str)
-
+rename (w2weight w2psu) (wgt psu)
 
 *** saving analysis variables and sample
 order idnum nat ref phl mhl srh pdh pdg ssp sal sas sai se2 ori age fem edu ///
-  wrk inc ins reg com wgt psu str
-keep idnum-str
+  wrk inc reg com wgt psu 
+keep idnum-psu
 
 * just keep immigrants and refugees
 keep if nat > 1 | ref == 1
